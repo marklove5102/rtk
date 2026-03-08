@@ -85,7 +85,7 @@ cargo run -- verify
 
 **Guard 1 — exact filter count:**
 ```
-assertion failed: Expected exactly 29 built-in filters, got 30.
+assertion failed: Expected exactly 21 built-in filters, got 22.
 Update this count when adding/removing filters in src/filters/.
 ```
 Fix: open `src/toml_filter.rs`, find `test_builtin_filter_count`, increment the number.

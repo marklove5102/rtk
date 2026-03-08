@@ -1408,8 +1408,6 @@ match_command = "^make\\b"
 
         let expected = [
             "ansible-playbook",
-            "docker-compose-ps",
-            "docker-inspect",
             "du",
             "fail2ban-client",
             "gcloud",
@@ -1420,7 +1418,6 @@ match_command = "^make\\b"
             "mix-format",
             "mvn-build",
             "pio-run",
-            "pnpm-build",
             "pre-commit",
             "quarto-render",
             "shopify-theme",
@@ -1449,8 +1446,8 @@ match_command = "^make\\b"
         let filters = make_filters(BUILTIN_TOML);
         assert_eq!(
             filters.len(),
-            24,
-            "Expected exactly 24 built-in filters, got {}. \
+            21,
+            "Expected exactly 21 built-in filters, got {}. \
              Update this count when adding/removing filters in src/filters/.",
             filters.len()
         );
@@ -1507,11 +1504,11 @@ expected = "output line 1\noutput line 2"
         let combined = format!("{}\n\n{}", BUILTIN_TOML, new_filter);
         let filters = make_filters(&combined);
 
-        // All 24 existing filters still present + 1 new = 25
+        // All 21 existing filters still present + 1 new = 22
         assert_eq!(
             filters.len(),
-            25,
-            "Expected 25 filters after concat (24 built-in + 1 new)"
+            22,
+            "Expected 22 filters after concat (21 built-in + 1 new)"
         );
 
         // New filter is discoverable
