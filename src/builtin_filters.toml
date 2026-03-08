@@ -90,7 +90,7 @@ expected = ""
 
 [filters.tofu-plan]
 description = "Compact OpenTofu plan output"
-match_command = "^tofu\\s+plan"
+match_command = "^tofu\\s+plan(\\s|$)"
 strip_ansi = true
 strip_lines_matching = [
   "^Refreshing state",
@@ -104,7 +104,7 @@ on_empty = "tofu plan: no changes detected"
 
 [filters.tofu-init]
 description = "Compact OpenTofu init output"
-match_command = "^tofu\\s+init"
+match_command = "^tofu\\s+init(\\s|$)"
 strip_ansi = true
 strip_lines_matching = [
   "^- Downloading",
@@ -120,7 +120,7 @@ on_empty = "tofu init: ok"
 
 [filters.tofu-validate]
 description = "Compact OpenTofu validate output"
-match_command = "^tofu\\s+validate"
+match_command = "^tofu\\s+validate(\\s|$)"
 strip_ansi = true
 match_output = [
   { pattern = "Success! The configuration is valid", message = "ok (valid)" },
@@ -128,7 +128,7 @@ match_output = [
 
 [filters.tofu-fmt]
 description = "Compact OpenTofu fmt output"
-match_command = "^tofu\\s+fmt"
+match_command = "^tofu\\s+fmt(\\s|$)"
 strip_ansi = true
 on_empty = "tofu fmt: ok (no changes)"
 max_lines = 30
@@ -175,13 +175,13 @@ truncate_lines_at = 120
 
 [filters.mix-format]
 description = "Compact mix format output"
-match_command = "^mix\\s+format"
+match_command = "^mix\\s+format(\\s|$)"
 on_empty = "mix format: ok"
 max_lines = 20
 
 [filters.mix-compile]
 description = "Compact mix compile output"
-match_command = "^mix\\s+compile"
+match_command = "^mix\\s+compile(\\s|$)"
 strip_ansi = true
 strip_lines_matching = [
   "^Compiling \\d+ file",
