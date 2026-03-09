@@ -52,18 +52,23 @@ fn send_ping() -> Result<(), Box<dyn std::error::Error>> {
     let version = env!("CARGO_PKG_VERSION").to_string();
     let os = std::env::consts::OS.to_string();
     let arch = std::env::consts::ARCH.to_string();
+    let install_method = detect_install_method();
 
     // Get stats from tracking DB
-    let (commands_24h, top_commands, savings_pct) = get_stats();
+    let (commands_24h, top_commands, savings_pct, tokens_saved_24h, tokens_saved_total) =
+        get_stats();
 
     let payload = serde_json::json!({
         "device_hash": device_hash,
         "version": version,
         "os": os,
         "arch": arch,
+        "install_method": install_method,
         "commands_24h": commands_24h,
         "top_commands": top_commands,
         "savings_pct": savings_pct,
+        "tokens_saved_24h": tokens_saved_24h,
+        "tokens_saved_total": tokens_saved_total,
     });
 
     let mut req = ureq::post(url).set("Content-Type", "application/json");
@@ -94,22 +99,58 @@ fn generate_device_hash() -> String {
     format!("{:x}", hasher.finalize())
 }
 
-fn get_stats() -> (i64, Vec<String>, Option<f64>) {
+fn get_stats() -> (i64, Vec<String>, Option<f64>, i64, i64) {
     let tracker = match tracking::Tracker::new() {
         Ok(t) => t,
-        Err(_) => return (0, vec![], None),
+        Err(_) => return (0, vec![], None, 0, 0),
     };
 
+    let since_24h = chrono::Utc::now() - chrono::Duration::hours(24);
+
     // Get 24h command count and top commands from tracking DB
-    let commands_24h = tracker
-        .count_commands_since(chrono::Utc::now() - chrono::Duration::hours(24))
-        .unwrap_or(0);
+    let commands_24h = tracker.count_commands_since(since_24h).unwrap_or(0);
 
     let top_commands = tracker.top_commands(5).unwrap_or_default();
 
     let savings_pct = tracker.overall_savings_pct().ok();
 
-    (commands_24h, top_commands, savings_pct)
+    let tokens_saved_24h = tracker.tokens_saved_24h(since_24h).unwrap_or(0);
+
+    let tokens_saved_total = tracker.total_tokens_saved().unwrap_or(0);
+
+    (
+        commands_24h,
+        top_commands,
+        savings_pct,
+        tokens_saved_24h,
+        tokens_saved_total,
+    )
+}
+
+/// Detect how RTK was installed by inspecting the binary path.
+fn detect_install_method() -> &'static str {
+    let exe = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(_) => return "unknown",
+    };
+
+    // Resolve symlinks to find the real binary location
+    let real_path = std::fs::canonicalize(&exe)
+        .unwrap_or(exe)
+        .to_string_lossy()
+        .to_string();
+
+    if real_path.contains("/Cellar/rtk/") || real_path.contains("/homebrew/") {
+        "homebrew"
+    } else if real_path.contains("/.cargo/bin/") {
+        "cargo"
+    } else if real_path.contains("/.local/bin/") {
+        "script"
+    } else if real_path.contains("/nix/store/") {
+        "nix"
+    } else {
+        "other"
+    }
 }
 
 fn telemetry_marker_path() -> PathBuf {
@@ -140,5 +181,27 @@ mod tests {
     fn test_marker_path_exists() {
         let path = telemetry_marker_path();
         assert!(path.to_string_lossy().contains("rtk"));
+    }
+
+    #[test]
+    fn test_detect_install_method_returns_known_value() {
+        let method = detect_install_method();
+        assert!(
+            ["homebrew", "cargo", "script", "nix", "other"].contains(&method),
+            "unexpected install method: {}",
+            method
+        );
+    }
+
+    #[test]
+    fn test_get_stats_returns_tuple() {
+        let (cmds, top, pct, saved_24h, saved_total) = get_stats();
+        assert!(cmds >= 0);
+        assert!(top.len() <= 5);
+        assert!(saved_24h >= 0);
+        assert!(saved_total >= 0);
+        if let Some(p) = pct {
+            assert!(p >= 0.0 && p <= 100.0);
+        }
     }
 }
